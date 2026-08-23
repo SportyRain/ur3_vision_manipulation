@@ -1,10 +1,13 @@
 import numpy as np
+import pytest
 from scipy.spatial.transform import Rotation
 
 from ur3_vision_manipulation.geometry import Transform
 from ur3_vision_manipulation.task_targets import PickPlaceTargets
 from ur3_vision_manipulation.waypoints import (
+    GripperState,
     WaypointOffsets,
+    compute_pick_sequence,
     compute_pick_place_waypoints,
 )
 
@@ -85,3 +88,31 @@ def test_marker_id_is_preserved():
     targets, _, waypoints = _synthetic_waypoints()
 
     assert waypoints.marker_id == targets.marker_id
+
+
+def test_pick_sequence_has_ordered_two_state_gripper_meaning():
+    _, _, waypoints = _synthetic_waypoints()
+
+    sequence = compute_pick_sequence(waypoints)
+
+    assert [step.name for step in sequence] == ["pre_pick", "pick", "lift"]
+    assert [step.gripper for step in sequence] == [
+        GripperState.OFF,
+        GripperState.ON,
+        GripperState.ON,
+    ]
+
+
+def test_pick_sequence_reuses_existing_waypoint_objects():
+    _, _, waypoints = _synthetic_waypoints()
+
+    sequence = compute_pick_sequence(waypoints)
+
+    assert sequence[0].waypoint is waypoints.base_T_pre_pick_tool
+    assert sequence[1].waypoint is waypoints.base_T_pick_tool
+    assert sequence[2].waypoint is waypoints.base_T_lift_tool
+
+
+def test_pick_sequence_rejects_non_waypoint_input():
+    with pytest.raises(TypeError, match="PickPlaceWaypoints"):
+        compute_pick_sequence(None)  # type: ignore[arg-type]
