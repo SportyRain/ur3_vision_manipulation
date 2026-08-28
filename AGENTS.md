@@ -52,4 +52,42 @@ source에는 기존 program/sequence가 있는데 registry에 없으면 `PROGRAM
 
 새 executable/module runtime/canonical sequence/runtime contract가 추가·변경된 경우 registry 동기화 전 milestone을 CLOSED 처리하지 않습니다.
 
-Gate가 닫히면 evidence를 확인하고 STOP합니다. 다음 Gate 구현까지 자동으로 확장하지 않습니다.
+## 프로젝트 전역 히스토리 / 기록 동기화
+
+```text
+GLOBAL_RECORD_SYNC = MANDATORY
+HISTORY_RECORD_FOR_MEANINGFUL_EVENT = MANDATORY
+```
+
+상세 정책은 다음 중앙 source를 따릅니다.
+
+```text
+SportyRain/ur3_visual_servoing/docs/PHYSICAL_AI_RECORD_POLICY.md
+```
+
+의미 있는 milestone 성공, 중요한 실패/root cause, 수정 후 개선, 실제 physical runtime 검증, 중요한 Sim/Real 차이, program/sequence 도입·폐기, 재사용/안전/운영 정책 변경은 history 대상입니다.
+
+이 repository에서 발생한 사건도 Physical AI 프로젝트 전체에 의미가 있으면 중앙 history continuity 대상입니다.
+
+기술적 SUCCESS가 있어도 필요한 기록이 동기화되지 않았다면 milestone을 CLOSED로 보고하지 않습니다.
+
+```text
+MILESTONE_STATUS = RECORD_SYNC_PENDING
+CLOSED = NO
+```
+
+최종 evidence에는 최소한 다음을 포함합니다.
+
+```text
+HISTORY_RECORD_REQUIRED = YES/NO
+HISTORY_EVENT_SUMMARY =
+HISTORY_EVIDENCE =
+CURRENT_STATE_UPDATE_REQUIRED = YES/NO
+PROGRAM_REGISTRY_UPDATE_REQUIRED = YES/NO
+RUNTIME_COMMAND_UPDATE_REQUIRED = YES/NO
+RECORD_SYNC_CHECK = PASS/PENDING
+```
+
+중앙 history를 직접 수정할 수 없으면 `PENDING`을 숨기지 않고 Supervisor가 동기화할 수 있게 위 evidence를 제출합니다.
+
+Gate가 닫히면 evidence와 기록 동기화를 확인하고 STOP합니다. 다음 Gate 구현까지 자동으로 확장하지 않습니다.
