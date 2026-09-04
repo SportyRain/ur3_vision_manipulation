@@ -2,10 +2,11 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 
 from ur3_vision_manipulation.geometry import Transform
-from ur3_vision_manipulation.task_targets import PickPlaceTargets
+from ur3_vision_manipulation.task_targets import PickPlaceTargets, ScenePickPlaceTargets
 from ur3_vision_manipulation.waypoints import (
     WaypointOffsets,
     compute_pick_place_waypoints,
+    compute_scene_pick_place_waypoints,
 )
 
 
@@ -85,3 +86,51 @@ def test_marker_id_is_preserved():
     targets, _, waypoints = _synthetic_waypoints()
 
     assert waypoints.marker_id == targets.marker_id
+
+
+def test_scene_object_id_and_waypoint_composition_are_preserved():
+    targets = ScenePickPlaceTargets(
+        object_id="object_007",
+        base_T_pick_tool=_transform([0.42, -0.18, 0.015], [0.04, -0.03, 0.02]),
+        base_T_place_tool=_transform([0.153, -0.286, 0.015], [-0.05, 0.02, -0.01]),
+    )
+    offsets = WaypointOffsets(
+        pick_T_pre_pick=_transform([0.0, 0.0, 0.05], [0.0, 0.0, 0.0]),
+        pick_T_lift=_transform([0.0, 0.0, 0.08], [0.0, 0.0, 0.0]),
+        place_T_pre_place=_transform([0.0, 0.0, 0.05], [0.0, 0.0, 0.0]),
+        place_T_retreat=_transform([0.0, 0.0, 0.08], [0.0, 0.0, 0.0]),
+    )
+
+    waypoints = compute_scene_pick_place_waypoints(targets, offsets)
+
+    assert waypoints.object_id == targets.object_id
+    np.testing.assert_allclose(
+        waypoints.base_T_pre_pick_tool.to_matrix(),
+        (targets.base_T_pick_tool @ offsets.pick_T_pre_pick).to_matrix(),
+        atol=1.0e-12,
+    )
+    np.testing.assert_allclose(
+        waypoints.base_T_pick_tool.to_matrix(),
+        targets.base_T_pick_tool.to_matrix(),
+        atol=1.0e-12,
+    )
+    np.testing.assert_allclose(
+        waypoints.base_T_lift_tool.to_matrix(),
+        (targets.base_T_pick_tool @ offsets.pick_T_lift).to_matrix(),
+        atol=1.0e-12,
+    )
+    np.testing.assert_allclose(
+        waypoints.base_T_pre_place_tool.to_matrix(),
+        (targets.base_T_place_tool @ offsets.place_T_pre_place).to_matrix(),
+        atol=1.0e-12,
+    )
+    np.testing.assert_allclose(
+        waypoints.base_T_place_tool.to_matrix(),
+        targets.base_T_place_tool.to_matrix(),
+        atol=1.0e-12,
+    )
+    np.testing.assert_allclose(
+        waypoints.base_T_retreat_tool.to_matrix(),
+        (targets.base_T_place_tool @ offsets.place_T_retreat).to_matrix(),
+        atol=1.0e-12,
+    )

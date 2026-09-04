@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from ur3_vision_manipulation.geometry import Transform
-from ur3_vision_manipulation.task_targets import PickPlaceTargets
+from ur3_vision_manipulation.task_targets import PickPlaceTargets, ScenePickPlaceTargets
 
 
 @dataclass(frozen=True)
@@ -31,6 +31,19 @@ class PickPlaceWaypoints:
     base_T_retreat_tool: Transform
 
 
+@dataclass(frozen=True)
+class ScenePickPlaceWaypoints:
+    """Scene-object Pick/Place waypoints expressed in the robot base frame."""
+
+    object_id: str
+    base_T_pre_pick_tool: Transform
+    base_T_pick_tool: Transform
+    base_T_lift_tool: Transform
+    base_T_pre_place_tool: Transform
+    base_T_place_tool: Transform
+    base_T_retreat_tool: Transform
+
+
 def compute_pick_place_waypoints(
     targets: PickPlaceTargets,
     offsets: WaypointOffsets,
@@ -39,6 +52,25 @@ def compute_pick_place_waypoints(
 
     return PickPlaceWaypoints(
         marker_id=targets.marker_id,
+        base_T_pre_pick_tool=targets.base_T_pick_tool @ offsets.pick_T_pre_pick,
+        base_T_pick_tool=targets.base_T_pick_tool,
+        base_T_lift_tool=targets.base_T_pick_tool @ offsets.pick_T_lift,
+        base_T_pre_place_tool=(
+            targets.base_T_place_tool @ offsets.place_T_pre_place
+        ),
+        base_T_place_tool=targets.base_T_place_tool,
+        base_T_retreat_tool=targets.base_T_place_tool @ offsets.place_T_retreat,
+    )
+
+
+def compute_scene_pick_place_waypoints(
+    targets: ScenePickPlaceTargets,
+    offsets: WaypointOffsets,
+) -> ScenePickPlaceWaypoints:
+    """Reuse the established Pick/Place waypoint composition for a scene object."""
+
+    return ScenePickPlaceWaypoints(
+        object_id=targets.object_id,
         base_T_pre_pick_tool=targets.base_T_pick_tool @ offsets.pick_T_pre_pick,
         base_T_pick_tool=targets.base_T_pick_tool,
         base_T_lift_tool=targets.base_T_pick_tool @ offsets.pick_T_lift,
